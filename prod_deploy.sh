@@ -2,7 +2,8 @@
 SECONDS=0
 
 # Navigate to your project directory
-cd ~/Another/rideshare-simulation
+#cd ~/Another/rideshare-simulation
+cd /home/evan/newserver
 
 # Function to print messages with a separator
 msg () {
