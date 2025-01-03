@@ -4,15 +4,50 @@ import (
   "fmt"
   "net/http"
   "os"
+  //db "rideshare-simulation/postgres"
+  db "rideshare-simulation/postgres"
+  //db "app/postgres"
 )
 
+/*
 func getData(w http.ResponseWriter, req *http.Request) {
   fmt.Fprintf(w, "Hello world\n")
 }
+*/
+
+func getDrivers(w http.ResponseWriter, req *http.Request) {
+	rows, err := db.Connection.Query("SELECT name FROM drivers")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer rows.Close()
+
+	data := ""
+	for rows.Next() {
+		var name string
+		err = rows.Scan(&name)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(name)
+		data += fmt.Sprintf("%s ", name)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Fprintf(w, data)
+}
 
 func main() {
-  http.HandleFunc("/data", getData)
+  db.InitDB()
+  defer db.Connection.Close()
+
+  //http.HandleFunc("/data", getData)
 http.Handle("/", http.FileServer(http.Dir("./static")))
+http.HandleFunc("/drivers", getDrivers)
 
   // Get the SERVER_ENV environment variable
   serverEnv := os.Getenv("SERVER_ENV")

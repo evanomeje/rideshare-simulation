@@ -1,0 +1,21 @@
+services:
+  app:
+    image: app
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+    environment:
+      SERVER_ENV: ${SERVER_ENV}
+  db:
+    image: postgres:15.1-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - app-db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+volumes:
+  app-db:
+    external: true

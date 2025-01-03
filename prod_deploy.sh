@@ -9,31 +9,19 @@ msg () {
   echo -e "$1\n--------------------\n"
 }
 
-# Stop and remove the running Docker container (if any)
-msg "Stopping and removing existing Docker container"
-sudo docker stop rideshare-simulation || true  # Stop the container if it exists
-sudo docker rm rideshare-simulation || true    # Remove the container if it exists
+# Stop and remove existing containers
+msg "Stopping containers"
+sudo docker compose down
 
 # Pull the latest code from GitHub
 msg "Pulling from GitHub"
 git pull
 
-# Build the Docker image
-msg "Building Docker image"
-sudo docker build -t chima2767/rideshare-simulation:latest .
+# Start the containers
+msg "Starting containers"
+sudo docker compose up -d
 
-# Start the Docker container
-msg "Starting Docker container"
-sudo docker run \
--d \
---name rideshare-simulation \
---expose 443 \
--p 443:443 \
--v /etc/letsencrypt:/etc/letsencrypt \
--e SERVER_ENV=PROD \
-chima2767/rideshare-simulation:latest
-
-# Prune unused Docker images to free up space
+# Prune unused Docker images
 msg "Pruning unused Docker images"
 sudo docker image prune -f
 
