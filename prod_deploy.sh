@@ -2,7 +2,6 @@
 SECONDS=0
 
 # Navigate to your project directory
-#cd ~/Another/rideshare-simulation
 cd /home/evan/newserver
 
 # Function to print messages with a separator
@@ -10,21 +9,33 @@ msg () {
   echo -e "$1\n--------------------\n"
 }
 
-# Stop the running app (if any)
-msg "Stopping app"
-sudo pkill app || true  # The `|| true` ensures the script doesn't fail if no app is running
+# Stop and remove the running Docker container (if any)
+msg "Stopping and removing existing Docker container"
+sudo docker stop rideshare-simulation || true  # Stop the container if it exists
+sudo docker rm rideshare-simulation || true    # Remove the container if it exists
 
 # Pull the latest code from GitHub
 msg "Pulling from GitHub"
 git pull
 
-# Build the Go binary
-msg "Building Go binary"
-go build
+# Build the Docker image
+msg "Building Docker image"
+sudo docker build -t chima2767/rideshare-simulation:latest .
 
-# Start the server in the background
-msg "Starting server"
-nohup sudo ./app &>/dev/null &  # `nohup` keeps the server running after logout
+# Start the Docker container
+msg "Starting Docker container"
+sudo docker run \
+-d \
+--name rideshare-simulation \
+--expose 443 \
+-p 443:443 \
+-v /etc/letsencrypt:/etc/letsencrypt \
+-e SERVER_ENV=PROD \
+chima2767/rideshare-simulation:latest
+
+# Prune unused Docker images to free up space
+msg "Pruning unused Docker images"
+sudo docker image prune -f
 
 # Calculate and display the deployment time
 duration=$SECONDS
