@@ -19,10 +19,8 @@ RUN go mod download
 # Copy the source code
 COPY *.go ./
 
-#COPY static ./static
-
 # Copy the React build files
-COPY frontend/build ./frontend/build
+COPY rideshare-frontend/build ./frontend/build
 
 # Build the Go binary
 RUN go build -o /app/main
