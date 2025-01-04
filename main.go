@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+   "fmt"
 
 	"github.com/joho/godotenv"
 )
@@ -80,7 +81,8 @@ func main() {
 	}
 	serverEnv := os.Getenv("SERVER_ENV")
 
-	log.Printf("Starting server in %s mode on port %s", serverEnv, serverPort)
+	fmt.Printf("Starting server in %s mode on port %s\n", serverEnv, serverPort)
+  log.Printf("Starting server in %s mode on port %s", serverEnv, serverPort)
 
 	var err error
 	if serverEnv == "PROD" {
