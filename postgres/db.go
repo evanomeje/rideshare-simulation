@@ -2,7 +2,7 @@ package db
 
 import (
     "database/sql"
-     "fmt"
+    "errors"
     "log"
     "time"
     _ "github.com/lib/pq"
@@ -11,14 +11,8 @@ import (
 var Connection *sql.DB
 
 func InitDB() error {
-    connStr := fmt.Sprintf(
-        "host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-        "localhost",           // host - matches service name in docker-compose
-        5432,          // port
-        "postgres",    // user
-        "mysecretpassword", // password - should use env var in production
-        "postgres",    // dbname
-    )
+    // Construct the connection string without fmt.Sprintf
+    connStr := "host=localhost port=5432 user=postgres password=mysecretpassword dbname=postgres sslmode=disable"
 
     var err error
     for i := 0; i < 5; i++ {
@@ -38,15 +32,15 @@ func InitDB() error {
         }
 
         log.Println("Successfully connected to the database!")
-        
+
         if err := initializeDatabase(); err != nil {
-            return fmt.Errorf("failed to initialize database: %v", err)
+            return errors.New("failed to initialize database: " + err.Error())
         }
-        
+
         return nil
     }
 
-    return fmt.Errorf("failed to connect to database after 5 attempts: %v", err)
+    return errors.New("failed to connect to database after 5 attempts: " + err.Error())
 }
 
 type Driver struct {
@@ -71,14 +65,14 @@ func initializeDatabase() error {
 
     _, err := Connection.Exec(createTableSQL)
     if err != nil {
-        return fmt.Errorf("error creating drivers table: %v", err)
+        return errors.New("error creating drivers table: " + err.Error())
     }
 
     // Check if table is empty
     var count int
     err = Connection.QueryRow("SELECT COUNT(*) FROM drivers").Scan(&count)
     if err != nil {
-        return fmt.Errorf("error checking drivers count: %v", err)
+        return errors.New("error checking drivers count: " + err.Error())
     }
 
     // Insert test data if table is empty
@@ -127,7 +121,7 @@ func initializeDatabase() error {
                 driver.LicenseNumber,
             )
             if err != nil {
-                return fmt.Errorf("error inserting test driver %s: %v", driver.Name, err)
+                return errors.New("error inserting test driver " + driver.Name + ": " + err.Error())
             }
         }
         log.Println("Successfully inserted test drivers into empty table")
