@@ -1,76 +1,92 @@
 package main
 
 import (
-  "fmt"
-  "net/http"
-  "os"
-  //db "rideshare-simulation/postgres"
-  db "rideshare-simulation/postgres"
-  //db "app/postgres"
+    "encoding/json"
+    "fmt"
+    "log"
+    "net/http"
+    "os"
+    db "app/postgres"
 )
 
-/*
-func getData(w http.ResponseWriter, req *http.Request) {
-  fmt.Fprintf(w, "Hello world\n")
+type Driver struct {
+    ID            int    `json:"id"`
+    Name          string `json:"name"`
+    Phone         string `json:"phone"`
+    Email         string `json:"email"`
+    LicenseNumber string `json:"license_number"`
 }
-*/
 
 func getDrivers(w http.ResponseWriter, req *http.Request) {
-	rows, err := db.Connection.Query("SELECT name FROM drivers")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer rows.Close()
+    rows, err := db.Connection.Query(`
+        SELECT id, name, phone, email, license_number 
+        FROM drivers
+    `)
+    if err != nil {
+        log.Printf("Database query error: %v", err)
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
+    defer rows.Close()
 
-	data := ""
-	for rows.Next() {
-		var name string
-		err = rows.Scan(&name)
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println(name)
-		data += fmt.Sprintf("%s ", name)
-	}
+    var drivers []Driver
+    for rows.Next() {
+        var d Driver
+        if err := rows.Scan(&d.ID, &d.Name, &d.Phone, &d.Email, &d.LicenseNumber); err != nil {
+            log.Printf("Row scan error: %v", err)
+            http.Error(w, "Database error", http.StatusInternalServerError)
+            return
+        }
+        drivers = append(drivers, d)
+    }
 
-	err = rows.Err()
-	if err != nil {
-		fmt.Println(err)
-	}
+    if err = rows.Err(); err != nil {
+        log.Printf("Row iteration error: %v", err)
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
 
-	fmt.Fprintf(w, data)
+    // Set response headers
+    w.Header().Set("Content-Type", "application/json")
+    
+    // Encode and send the response
+    if err := json.NewEncoder(w).Encode(drivers); err != nil {
+        log.Printf("Error encoding response: %v", err)
+        http.Error(w, "Error encoding response", http.StatusInternalServerError)
+        return
+    }
 }
 
 func main() {
-  db.InitDB()
-  defer db.Connection.Close()
-
-  //http.HandleFunc("/data", getData)
-http.Handle("/", http.FileServer(http.Dir("./static")))
-http.HandleFunc("/drivers", getDrivers)
-
-  // Get the SERVER_ENV environment variable
-  serverEnv := os.Getenv("SERVER_ENV")
-
-  // Run the server based on the environment
-  if serverEnv == "DEV" {
-    fmt.Println("Running in DEV mode on port 8080...")
-    err := http.ListenAndServe(":8080", nil)
-    if err != nil {
-      fmt.Println("Error starting HTTP server:", err)
+    if err := db.InitDB(); err != nil {
+        log.Fatalf("Failed to initialize database: %v", err)
     }
-  } else if serverEnv == "PROD" {
-    fmt.Println("Running in PROD mode on port 443...")
-    err := http.ListenAndServeTLS(
-      ":443",
-      "/etc/letsencrypt/live/app.evanomeje.xyz/fullchain.pem",
-      "/etc/letsencrypt/live/app.evanomeje.xyz/privkey.pem",
-      nil,
-    )
-    if err != nil {
-      fmt.Println("Error starting HTTPS server:", err)
+    defer db.Connection.Close()
+
+    http.Handle("/", http.FileServer(http.Dir("./static")))
+    http.HandleFunc("/drivers", getDrivers)
+
+    serverPort := os.Getenv("SERVER_PORT")
+    if serverPort == "" {
+        serverPort = "8080"
     }
-  } else {
-    fmt.Println("Unknown SERVER_ENV value. Please set it to DEV or PROD.")
-  }
+    serverEnv := os.Getenv("SERVER_ENV")
+
+    log.Printf("Starting server in %s mode on port %s", serverEnv, serverPort)
+    
+    var err error
+    if serverEnv == "PROD" {
+        err = http.ListenAndServeTLS(
+            ":"+serverPort,
+            "/etc/letsencrypt/live/app.evanomeje.xyz/fullchain.pem",
+            "/etc/letsencrypt/live/app.evanomeje.xyz/privkey.pem",
+            nil,
+        )
+    } else {
+        err = http.ListenAndServe(":"+serverPort, nil)
+    }
+
+    if err != nil {
+        log.Fatalf("Server failed to start: %v", err)
+    }
 }

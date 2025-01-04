@@ -21,10 +21,10 @@ COPY *.go ./
 COPY static ./static
 
 # Build the Go binary
-RUN go build -o /app/rideshare-simulation
+RUN go build -o /app/main
 
 # Expose the port the app will run on
 EXPOSE 8080
 
 # Command to run the application
-CMD [ "/app/rideshare-simulation" ]
+CMD [ "/app/main" ]
