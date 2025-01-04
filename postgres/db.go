@@ -2,7 +2,7 @@ package db
 
 import (
     "database/sql"
-    "fmt"
+    _ "fmt"
     "log"
     "time"
     _ "github.com/lib/pq"
