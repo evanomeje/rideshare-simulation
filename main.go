@@ -2,11 +2,12 @@ package main
 
 import (
     "encoding/json"
-    "fmt"
+    //"fmt"
     "log"
     "net/http"
     "os"
     db "app/postgres"
+    "github.com/joho/godotenv"
 )
 
 type Driver struct {
@@ -15,6 +16,13 @@ type Driver struct {
     Phone         string `json:"phone"`
     Email         string `json:"email"`
     LicenseNumber string `json:"license_number"`
+}
+
+func init() {
+  // Load .env file
+  if err := godotenv.Load(); err != nil {
+      log.Println("No .env file found")
+  }
 }
 
 func getDrivers(w http.ResponseWriter, req *http.Request) {

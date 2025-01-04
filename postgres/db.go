@@ -13,7 +13,7 @@ var Connection *sql.DB
 func InitDB() error {
     connStr := fmt.Sprintf(
         "host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-        "db",           // host - matches service name in docker-compose
+        "localhost",           // host - matches service name in docker-compose
         5432,          // port
         "postgres",    // user
         "mysecretpassword", // password - should use env var in production
