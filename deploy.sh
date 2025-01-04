@@ -8,7 +8,7 @@
 # Build the React app locally
 echo "Building the React app..."
 cd rideshare-frontend
-yarn build
+npm run build
 cd ..
 
 # Commit the build files to Git (optional)
