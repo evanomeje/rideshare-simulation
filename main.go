@@ -82,7 +82,7 @@ func main() {
 	}
 	serverEnv := os.Getenv("SERVER_ENV")
 
-	fmt.Printf("Starting server in %s mode on port %s\n", serverEnv, serverPort)
+
   log.Printf("Starting server in %s mode on port %s", serverEnv, serverPort)
 
 	var err error
