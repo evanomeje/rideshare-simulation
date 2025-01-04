@@ -5,7 +5,8 @@ services:
       - ${SERVER_PORT}:${SERVER_PORT}
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      - ./static:/app/static
+      #- ./static:/app/static
+      - ./frontend/build:/app/frontend/build
     environment:
       SERVER_ENV: ${SERVER_ENV}
       SERVER_PORT: ${SERVER_PORT}
