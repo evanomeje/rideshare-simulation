@@ -22,6 +22,7 @@ COPY *.go ./
 # Copy the React build files
 COPY rideshare-frontend/build ./frontend/build
 
+
 # Build the Go binary
 RUN go build -o /app/main
 
