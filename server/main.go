@@ -74,7 +74,7 @@ func main() {
     }
     defer db.Connection.Close()
 
-    // Create file server for static files
+    // Update the static file serving path to match your project structure
     fs := http.FileServer(http.Dir("frontend/build"))
 
     // Set up routes
@@ -96,7 +96,7 @@ func main() {
             return
         }
 
-        // Check if file exists
+        // Update path check as well
         path := "frontend/build" + r.URL.Path
         if _, err := os.Stat(path); os.IsNotExist(err) {
             // For API routes, don't serve index.html
