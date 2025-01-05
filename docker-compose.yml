@@ -1,28 +1,42 @@
+version: '3.8'
+
 services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
   server:
-    image: server
     build:
       context: .
-      dockerfile: ./server/Dockerfile
-    ports:
-      - ${SERVER_PORT}:${SERVER_PORT}
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt
+      dockerfile: server/Dockerfile
     environment:
-      SERVER_ENV: ${SERVER_ENV}
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: mysecretpassword
+      DB_NAME: postgres
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+
   simulation:
     build:
       context: .
-      dockerfile: ./simulation/Dockerfile
-  db:
-    image: postgres:15.1-alpine
-    ports:
-      - 5432:5432
-    volumes:
-      - app-db:/var/lib/postgresql/data
+      dockerfile: simulation/Dockerfile
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: mysecretpassword
+      DB_NAME: postgres
+    depends_on:
+      - db
 
 volumes:
-  app-db:
-    external: true
+  postgres_data:
