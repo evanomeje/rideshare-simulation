@@ -1,34 +1,34 @@
 #!/bin/bash
-SECONDS=0
 
-# Navigate to your project directory
-cd /home/evan/newserver
+# Build the React app locally
+echo "Building the React app..."
+cd rideshare-frontend
+yarn build
+cd ..
 
-#cd /home/app
-# Function to print messages with a separator
-msg () {
-  echo -e "$1\n--------------------\n"
-}
+# Create a tarball of the build directory
+echo "Creating build archive..."
+tar -czf frontend-build.tar.gz rideshare-frontend/build
 
+# Copy the build files to the server
+echo "Copying build files to server..."
+scp frontend-build.tar.gz evan@app.evanomeje.xyz:/home/evan/newserver/
 
-msg "Pulling from GitHub"
-git pull
+# Extract the build files on the server and clean up
+echo "Extracting build files on server..."
+ssh evan@app.evanomeje.xyz "cd /home/evan/newserver && \
+    tar -xzf frontend-build.tar.gz && \
+    rm frontend-build.tar.gz"
 
-msg "Building the 'app' image"
-sudo docker build --tag app .
+# Commit the build files to Git
+echo "Committing build files to Git..."
+git add .
+git commit -m "Build frontend for production"
 
-msg "Stopping containers"
-sudo docker compose down
+# Push changes to the remote repository
+echo "Pushing changes to Git..."
+git push
 
-msg "Starting containers"
-sudo docker compose up -d
-
-msg "Pruning stale Docker images"
-sudo docker image prune -f
-
-duration=$SECONDS
-
-echo
-msg "Deploy finished in $(($duration % 60)) seconds."
-msg "Press Enter to exit"
-read
+# Deploy on the server
+echo "Deploying to production server..."
+ssh -t evan@app.evanomeje.xyz "cd /home/evan/newserver && ./prod_deploy.sh"

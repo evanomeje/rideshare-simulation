@@ -20,7 +20,7 @@ RUN go mod download
 COPY *.go ./
 
 # Copy the React build files
-COPY rideshare-frontend/build ./frontend/build
+COPY rideshare-frontend/build ./rideshare-frontend/build 
 
 
 # Build the Go binary
