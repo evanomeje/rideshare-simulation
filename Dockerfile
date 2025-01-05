@@ -1,13 +1,11 @@
 # Use the official Go image as the base image
-FROM golang:1.22-alpine
+FROM golang:1.23-alpine
 
 # Set the working directory inside the container
 WORKDIR /app
 
 # Copy the Go module files
 COPY go.mod ./
-
-# Copy the Go sum files
 COPY go.sum ./
 
 # Copy postgres stuff
@@ -20,8 +18,7 @@ RUN go mod download
 COPY *.go ./
 
 # Copy the React build files
-COPY rideshare-frontend/build ./rideshare-frontend/build 
-
+COPY rideshare-frontend/build/ ./rideshare-frontend/build/
 
 # Build the Go binary
 RUN go build -o /app/main

@@ -5,21 +5,10 @@ services:
       - ${SERVER_PORT}:${SERVER_PORT}
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      #- ./static:/app/static
-      - ./frontend/build:/app/frontend/build
+      - ./rideshare-frontend/build:/app/rideshare-frontend/build
     environment:
       SERVER_ENV: ${SERVER_ENV}
       SERVER_PORT: ${SERVER_PORT}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       - db
-  db:
-    image: postgres:15.1-alpine
-    ports:
-      - 5432:5432
-    volumes:
-      - app-db:/var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-volumes:
-  app-db:
