@@ -6,8 +6,7 @@ import (
     "log"
     "net/http"
     "os"
-
-    "github.com/joho/godotenv"
+    "path/filepath"
 )
 
 type Driver struct {
@@ -71,7 +70,44 @@ func main() {
     }
     defer db.Connection.Close()
 
-    http.Handle("/", http.FileServer(http.Dir("./rideshare-frontend/build")))
+    // Create a file server handler
+    fs := http.FileServer(http.Dir("./rideshare-frontend/build"))
+    
+    // Handle all routes
+    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+        // Log the request
+        log.Printf("Received request for: %s", r.URL.Path)
+
+        // Check if the requested path exists
+        requestedPath := filepath.Join("./rideshare-frontend/build", r.URL.Path)
+        _, err := os.Stat(requestedPath)
+        
+        if err != nil {
+            log.Printf("Error checking path %s: %v", requestedPath, err)
+        }
+
+        // If it's the root path or a non-existent file, serve index.html
+        if r.URL.Path == "/" || os.IsNotExist(err) {
+            indexPath := "./rideshare-frontend/build/index.html"
+            log.Printf("Serving index.html from: %s", indexPath)
+            
+            // Check if index.html exists
+            if _, err := os.Stat(indexPath); err != nil {
+                log.Printf("Error: index.html not found at %s: %v", indexPath, err)
+                http.Error(w, "index.html not found", http.StatusNotFound)
+                return
+            }
+            
+            http.ServeFile(w, r, indexPath)
+            return
+        }
+
+        // For all other paths, try to serve the static file
+        log.Printf("Serving static file: %s", requestedPath)
+        fs.ServeHTTP(w, r)
+    })
+
+    // API routes
     http.HandleFunc("/drivers", getDrivers)
 
     serverPort := os.Getenv("SERVER_PORT")
@@ -81,6 +117,17 @@ func main() {
     serverEnv := os.Getenv("SERVER_ENV")
 
     log.Printf("Starting server in %s mode on port %s", serverEnv, serverPort)
+    log.Printf("Static files directory: %s", "./rideshare-frontend/build")
+
+    // List contents of build directory
+    if files, err := os.ReadDir("./rideshare-frontend/build"); err == nil {
+        log.Println("Contents of build directory:")
+        for _, file := range files {
+            log.Printf("- %s", file.Name())
+        }
+    } else {
+        log.Printf("Error reading build directory: %v", err)
+    }
 
     var err error
     if serverEnv == "PROD" {
