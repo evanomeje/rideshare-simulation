@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS rides (
+    car_id VARCHAR(255) PRIMARY KEY,
+    location VARCHAR(255) NOT NULL,
+    path TEXT NOT NULL
+);

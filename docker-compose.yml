@@ -1,28 +1,40 @@
+
 services:
-  server:
-    image: server
-    build:
-      context: .
-      dockerfile: ./server/Dockerfile
-    ports:
-      - ${SERVER_PORT}:${SERVER_PORT}
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt
-    environment:
-      SERVER_ENV: ${SERVER_ENV}
-  simulation:
-    build:
-      context: .
-      dockerfile: ./simulation/Dockerfile
   db:
-    image: postgres:15.1-alpine
-    ports:
-      - 5432:5432
-    volumes:
-      - app-db:/var/lib/postgresql/data
+    image: postgres:15-alpine
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+  app:
+    build:
+      context: .
+      dockerfile: server/Dockerfile    # Point to the correct Dockerfile location
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+
+  simulation:
+    build: 
+      context: .
+      dockerfile: simulation/Dockerfile
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+    depends_on:
+      - db
 
 volumes:
-  app-db:
-    external: true
+  postgres_data:

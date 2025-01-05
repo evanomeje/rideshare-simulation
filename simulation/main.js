@@ -1,6 +1,5 @@
 const fs = require('fs');
 const { Client } = require('pg');
-const dbConfig = JSON.parse(fs.readFileSync('../dbconfig.json', 'utf8'));
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -8,22 +7,53 @@ const paths = {
     first: [
         [8,17],
         [8,16],
-        // ... add more coordinates
-        [16,12],
+        [8,15],
+        [9,15],
+        [10,15],
+        [11,15],
+        [12,15],
+        [13,15],
+        [14,15],
+        [15,15],
+        [16,15],
+        [16,14],
+        [16,13],
+        [16,12]
     ],
     second: [
         [16,12],
         [16,11],
-        // ... add more coordinates
-        [8,17],
+        [16,10],
+        [15,10],
+        [14,10],
+        [13,10],
+        [12,10],
+        [11,10],
+        [10,10],
+        [9,10],
+        [8,10],
+        [8,11],
+        [8,12],
+        [8,13],
+        [8,14],
+        [8,15],
+        [8,16],
+        [8,17]
     ]
 };
 
 const main = async () => {
     await wait(5000);
 
+    const dbConfig = JSON.parse(fs.readFileSync('../dbconfig.json', 'utf8'));
     const { host, port, user, password, dbname } = dbConfig;
-    const client = new Client({ host, port, user, password, database: dbname });
+    const client = new Client({ 
+        host, 
+        port, 
+        user, 
+        password, 
+        database: dbname 
+    });
 
     client.connect((err) => {
         if (err) console.error('connection error', err.stack);
@@ -56,4 +86,4 @@ const main = async () => {
     }
 };
 
-main();
+main().catch(console.error);

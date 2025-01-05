@@ -1,70 +1,70 @@
 package main
 
 import (
-	db "app/db"
-	"encoding/json"
-	"log"
-	"net/http"
-	"os"
-	_ "path/filepath"
-	"strings"
+    db "app/db"
+    "encoding/json"
+    "log"
+    "net/http"
+    "os"
+    _ "path/filepath"
+    "strings"
 
-	"github.com/joho/godotenv"
+    "github.com/joho/godotenv"
 )
 
 type Driver struct {
-	ID            int    `json:"id"`
-	Name          string `json:"name"`
-	Phone         string `json:"phone"`
-	Email         string `json:"email"`
-	LicenseNumber string `json:"license_number"`
+    ID            int    `json:"id"`
+    Name          string `json:"name"`
+    Phone         string `json:"phone"`
+    Email         string `json:"email"`
+    LicenseNumber string `json:"license_number"`
 }
 
 func init() {
-	// Load .env file
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
-	}
+    // Load .env file
+    if err := godotenv.Load(); err != nil {
+        log.Println("No .env file found")
+    }
 }
 
 func getDrivers(w http.ResponseWriter, req *http.Request) {
-	rows, err := db.Connection.Query(`
+    rows, err := db.Connection.Query(`
         SELECT id, name, phone, email, license_number 
         FROM drivers
     `)
-	if err != nil {
-		log.Printf("Database query error: %v", err)
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
+    if err != nil {
+        log.Printf("Database query error: %v", err)
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
+    defer rows.Close()
 
-	var drivers []Driver
-	for rows.Next() {
-		var d Driver
-		if err := rows.Scan(&d.ID, &d.Name, &d.Phone, &d.Email, &d.LicenseNumber); err != nil {
-			log.Printf("Row scan error: %v", err)
-			http.Error(w, "Database error", http.StatusInternalServerError)
-			return
-		}
-		drivers = append(drivers, d)
-	}
+    var drivers []Driver
+    for rows.Next() {
+        var d Driver
+        if err := rows.Scan(&d.ID, &d.Name, &d.Phone, &d.Email, &d.LicenseNumber); err != nil {
+            log.Printf("Row scan error: %v", err)
+            http.Error(w, "Database error", http.StatusInternalServerError)
+            return
+        }
+        drivers = append(drivers, d)
+    }
 
-	if err = rows.Err(); err != nil {
-		log.Printf("Row iteration error: %v", err)
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
+    if err = rows.Err(); err != nil {
+        log.Printf("Row iteration error: %v", err)
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
 
-	// Set response headers
-	w.Header().Set("Content-Type", "application/json")
+    // Set response headers
+    w.Header().Set("Content-Type", "application/json")
 
-	// Encode and send the response
-	if err := json.NewEncoder(w).Encode(drivers); err != nil {
-		log.Printf("Error encoding response: %v", err)
-		http.Error(w, "Error encoding response", http.StatusInternalServerError)
-		return
-	}
+    // Encode and send the response
+    if err := json.NewEncoder(w).Encode(drivers); err != nil {
+        log.Printf("Error encoding response: %v", err)
+        http.Error(w, "Error encoding response", http.StatusInternalServerError)
+        return
+    }
 }
 
 type Ride struct {
@@ -86,28 +86,51 @@ func getRides(w http.ResponseWriter, req *http.Request) {
 
     for rows.Next() {
         var ride Ride
-        rows.Scan(&ride.Id, &ride.CarId, &ride.Location, &ride.Path)
+        if err := rows.Scan(&ride.Id, &ride.CarId, &ride.Location, &ride.Path); err != nil {
+            http.Error(w, "Error scanning ride: "+err.Error(), http.StatusInternalServerError)
+            return
+        }
         rides = append(rides, ride)
     }
 
-    ridesBytes, _ := json.MarshalIndent(rides, "", "\t")
-
     w.Header().Set("Content-Type", "application/json")
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    
+    ridesBytes, err := json.MarshalIndent(rides, "", "\t")
+    if err != nil {
+        http.Error(w, "Error encoding rides: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+    
     w.Write(ridesBytes)
 }
 
 func main() {
+    // Get environment variables with defaults
+    serverEnv := os.Getenv("SERVER_ENV")
+    if serverEnv == "" {
+        serverEnv = "DEV"
+    }
+    
+    serverPort := os.Getenv("SERVER_PORT")
+    if serverPort == "" {
+        serverPort = "8080"
+    }
+
+    // Initialize database
     if err := db.InitDB(); err != nil {
         log.Fatalf("Failed to initialize database: %v", err)
     }
     defer db.Connection.Close()
 
-    // Update path to frontend build directory
-    fs := http.FileServer(http.Dir("../frontend/build"))
+    // Create file server for static files
+    fs := http.FileServer(http.Dir("frontend/build"))
 
+    // Set up routes
     http.HandleFunc("/rides", getRides)
+    http.HandleFunc("/drivers", getDrivers)
 
-    // Handle all routes
+    // Handle all other routes
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         // Log the request for debugging
         log.Printf("Received request: %s %s", r.Method, r.URL.Path)
@@ -123,18 +146,18 @@ func main() {
             return
         }
 
-        // Update path to frontend build directory
-        path := "../frontend/build" + r.URL.Path
+        // Check if file exists
+        path := "frontend/build" + r.URL.Path
         if _, err := os.Stat(path); os.IsNotExist(err) {
             // For API routes, don't serve index.html
-            if strings.HasPrefix(r.URL.Path, "/drivers") {
+            if strings.HasPrefix(r.URL.Path, "/drivers") || strings.HasPrefix(r.URL.Path, "/rides") {
                 http.NotFound(w, r)
                 return
             }
 
             // For all other routes, serve index.html
             log.Printf("File not found, serving index.html instead for path: %s", r.URL.Path)
-            http.ServeFile(w, r, "../frontend/build/index.html")
+            http.ServeFile(w, r, "frontend/build/index.html")
             return
         }
 
@@ -149,11 +172,12 @@ func main() {
         fs.ServeHTTP(w, r)
     })
 
+    // Log startup information
     log.Printf("Starting server in %s mode on port %s", serverEnv, serverPort)
-    log.Printf("Serving static files from: %s", "../frontend/build")
+    log.Printf("Serving static files from: %s", "frontend/build")
 
-    // Update path for reading build directory
-    if files, err := os.ReadDir("../frontend/build"); err == nil {
+    // List contents of build directory
+    if files, err := os.ReadDir("frontend/build"); err == nil {
         log.Println("Contents of build directory:")
         for _, file := range files {
             log.Printf("- %s", file.Name())
@@ -162,6 +186,7 @@ func main() {
         log.Printf("Error reading build directory: %v", err)
     }
 
+    // Start server with appropriate protocol
     var err error
     if serverEnv == "PROD" {
         // Use TLS in production
