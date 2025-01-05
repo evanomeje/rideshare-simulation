@@ -67,6 +67,35 @@ func getDrivers(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+type Ride struct {
+    Id       string `json:"id"`
+    CarId    string `json:"car_id"`
+    Location string `json:"location"`
+    Path     string `json:"path"`
+}
+
+func getRides(w http.ResponseWriter, req *http.Request) {
+    rows, err := db.Connection.Query("SELECT * FROM rides")
+    if err != nil {
+        http.Error(w, "Failed to get rides: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer rows.Close()
+
+    var rides []Ride
+
+    for rows.Next() {
+        var ride Ride
+        rows.Scan(&ride.Id, &ride.CarId, &ride.Location, &ride.Path)
+        rides = append(rides, ride)
+    }
+
+    ridesBytes, _ := json.MarshalIndent(rides, "", "\t")
+
+    w.Header().Set("Content-Type", "application/json")
+    w.Write(ridesBytes)
+}
+
 func main() {
     if err := db.InitDB(); err != nil {
         log.Fatalf("Failed to initialize database: %v", err)
@@ -75,6 +104,8 @@ func main() {
 
     // Update path to frontend build directory
     fs := http.FileServer(http.Dir("../frontend/build"))
+
+    http.HandleFunc("/rides", getRides)
 
     // Handle all routes
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
