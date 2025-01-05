@@ -75,40 +75,60 @@ func main() {
     
     // Handle all routes
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        // Log the request
-        log.Printf("Received request for: %s", r.URL.Path)
+        // Log the request for debugging
+        log.Printf("Received request: %s %s", r.Method, r.URL.Path)
 
-        // Check if the requested path exists
-        requestedPath := filepath.Join("./rideshare-frontend/build", r.URL.Path)
-        _, err := os.Stat(requestedPath)
-        
-        if err != nil {
-            log.Printf("Error checking path %s: %v", requestedPath, err)
-        }
+        // Set CORS headers
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization")
 
-        // If it's the root path or a non-existent file, serve index.html
-        if r.URL.Path == "/" || os.IsNotExist(err) {
-            indexPath := "./rideshare-frontend/build/index.html"
-            log.Printf("Serving index.html from: %s", indexPath)
-            
-            // Check if index.html exists
-            if _, err := os.Stat(indexPath); err != nil {
-                log.Printf("Error: index.html not found at %s: %v", indexPath, err)
-                http.Error(w, "index.html not found", http.StatusNotFound)
-                return
-            }
-            
-            http.ServeFile(w, r, indexPath)
+        // Handle OPTIONS requests
+        if r.Method == "OPTIONS" {
+            w.WriteHeader(http.StatusOK)
             return
         }
 
-        // For all other paths, try to serve the static file
-        log.Printf("Serving static file: %s", requestedPath)
+        // Check if file exists in build directory
+        path := "./rideshare-frontend/build" + r.URL.Path
+        if _, err := os.Stat(path); os.IsNotExist(err) {
+            // For API routes, don't serve index.html
+            if strings.HasPrefix(r.URL.Path, "/drivers") {
+                http.NotFound(w, r)
+                return
+            }
+
+            // For all other routes, serve index.html
+            log.Printf("File not found, serving index.html instead for path: %s", r.URL.Path)
+            http.ServeFile(w, r, "./rideshare-frontend/build/index.html")
+            return
+        }
+
+        // Set correct content types
+        if strings.HasSuffix(r.URL.Path, ".js") {
+            w.Header().Set("Content-Type", "application/javascript")
+        } else if strings.HasSuffix(r.URL.Path, ".css") {
+            w.Header().Set("Content-Type", "text/css")
+        }
+
+        // Serve static files
         fs.ServeHTTP(w, r)
     })
 
     // API routes
-    http.HandleFunc("/drivers", getDrivers)
+    http.HandleFunc("/drivers", func(w http.ResponseWriter, r *http.Request) {
+        // Set CORS headers for API routes
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization")
+
+        if r.Method == "OPTIONS" {
+            w.WriteHeader(http.StatusOK)
+            return
+        }
+
+        getDrivers(w, r)
+    })
 
     serverPort := os.Getenv("SERVER_PORT")
     if serverPort == "" {
@@ -117,7 +137,7 @@ func main() {
     serverEnv := os.Getenv("SERVER_ENV")
 
     log.Printf("Starting server in %s mode on port %s", serverEnv, serverPort)
-    log.Printf("Static files directory: %s", "./rideshare-frontend/build")
+    log.Printf("Serving static files from: %s", "./rideshare-frontend/build")
 
     // List contents of build directory
     if files, err := os.ReadDir("./rideshare-frontend/build"); err == nil {
@@ -131,6 +151,7 @@ func main() {
 
     var err error
     if serverEnv == "PROD" {
+        // Use TLS in production
         err = http.ListenAndServeTLS(
             ":"+serverPort,
             "/etc/letsencrypt/live/app.evanomeje.xyz/fullchain.pem",
@@ -138,6 +159,7 @@ func main() {
             nil,
         )
     } else {
+        // Use HTTP in development
         err = http.ListenAndServe(":"+serverPort, nil)
     }
 
