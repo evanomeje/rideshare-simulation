@@ -3,14 +3,14 @@ SECONDS=0
 
 # Build the React app
 echo "Building React app..."
-cd rideshare-frontend
+cd frontend
 yarn build
 cd ..
 
 # Sync frontend files
 echo "Syncing frontend files to server..."
-ssh evan@app.evanomeje.xyz "mkdir -p /home/evan/newserver/rideshare-frontend/build"
-scp -r rideshare-frontend/build/* evan@app.evanomeje.xyz:/home/evan/newserver/rideshare-frontend/build/
+ssh evan@app.evanomeje.xyz "mkdir -p /home/evan/newserver/frontend/build" 
+scp -r frontend/build/* evan@app.evanomeje.xyz:/home/evan/newserver/frontend/build/  
 
 # Commit and push changes
 echo "Committing and pushing changes..."

@@ -1,14 +1,28 @@
 services:
-  app:
-    image: app
+  server:
+    image: server
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
     volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - ./rideshare-frontend/build:/app/rideshare-frontend/build
+      - /etc/letsencrypt:/etc/letsencrypt
     environment:
       SERVER_ENV: ${SERVER_ENV}
-      SERVER_PORT: ${SERVER_PORT}
+  simulation:
+    build:
+      context: .
+      dockerfile: ./simulation/Dockerfile
+  db:
+    image: postgres:15.1-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - app-db:/var/lib/postgresql/data
+    environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    depends_on:
-      - db
+
+volumes:
+  app-db:
+    external: true
